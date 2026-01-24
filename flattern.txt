@@ -1,0 +1,86 @@
+create  or replace database orderdb;
+
+create or replace schema s3_order_schema;
+
+CREATE or REPLACE STAGE s3_order_stage
+ URL = 's3://regex-himanshu'
+ CREDENTIALS = (AWS_KEY_ID = 'AKI55ER'
+ AWS_SECRET_KEY ='wY7ph7p8RNPOXMf');
+
+ list@orderdb.s3_order_schema.s3_order_stage;
+ describe stage s3_order_stage;
+
+  -- schema for table 
+CREATE OR REPLACE schema table_schema_order;
+
+CREATE OR REPLACE schema file_formate_schema_order;
+create or replace  file format orderdb.file_formate_schema_order.jsonformat
+TYPE = JSON;
+
+
+ create or replace table orderdb.table_schema_order.orderTable (col variant);
+ select *  from orderdb.table_schema_order.orderTable;
+
+ copy into orderdb.table_schema_order.orderTable
+ from @orderdb.s3_order_schema.s3_order_stage
+ file_format = orderdb.file_formate_schema_order.jsonformat
+ files =('orders_500.json');
+
+
+--2
+select *, f.value,f.value:customer:name::string,f.value:customer_id::string from orderdb.table_schema_order.orderTable,
+table(flatten(col)) f;
+
+--3
+SELECT 
+    f.value:order_id :: string AS order_id,
+    f.value:order_ts :: string AS order_ts,
+    f.value:customer:customer_id::string AS customer_id,
+    f.value:customer:name::string AS customer_name,
+    f.value:customer:address:city::string AS city,
+    f.value:payment:method::string AS payment_method,
+    f.value:payment:status:: string AS payment_status,
+    f.value:metadata:source::string AS source,
+    f.value:metadata:campaign::string AS campaign
+    FROM orderdb.table_schema_order.orderTable,
+     table(flatten(col)) f;
+
+-- 4
+create or replace table orderdb.table_schema_order.dim_customer as 
+select distinct
+    f.value:customer:customer_id::string AS customer_id,
+    f.value:customer:name::string AS customer_name,
+    f.value:customer:address:line1::string AS line1,
+    f.value:customer:address:city::string AS city,
+    f.value:customer:address:state::string AS state,
+    f.value:customer:address:country::string AS country,
+    f.value:customer:address:pincode::string AS pincode
+    FROM orderdb.table_schema_order.orderTable,
+     table(flatten(col)) f;
+select * from orderdb.table_schema_order.dim_customer;
+
+
+--5
+create or replace table orderdb.table_schema_order.fact_table as 
+select
+    f.value:order_id :: string AS order_id,
+    f.value:order_ts :: string AS order_ts,
+    f.value:customer:customer_id::string AS customer_id,
+    f.value:payment:method::string AS payment_method,
+    f.value:payment:status:: string AS payment_status,
+    f.value:metadata:source::string AS source,
+    f.value:metadata:campaign::string AS campaign
+    FROM orderdb.table_schema_order.orderTable,
+     table(flatten(col)) f;
+select * from orderdb.table_schema_order.fact_table;
+
+--6
+create or replace table orderdb.table_schema_order.fact_table as 
+select
+
+
+
+
+
+select f.value:items[0]:attributes ,substr( f.value:customer:customer_id:: string, -2) as cid from orderdb.table_schema_order.orderTable,
+table(flatten(col)) f;

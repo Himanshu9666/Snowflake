@@ -1,0 +1,24 @@
+use database orderdb;
+
+create or replace schema snowpipe_schema;
+
+CREATE or REPLACE STAGE s3_snowpipe_stage
+ 
+
+list@orderdb.snowpipe_schema.s3_snowpipe_stage;
+describe stage s3_snowpipe_stage;
+
+create or replace table Employee (id int,name varchar(20),email varchar(30));
+select * from Employee;
+  
+// Define pipe
+CREATE OR REPLACE pipe orderdb.snowpipe_schema.employee_pipe
+auto_ingest = TRUE
+AS
+copy into orderdb.snowpipe_schema.Employee
+from @orderdb.snowpipe_schema.s3_snowpipe_stage
+file_format=( field_delimiter='-', skip_header=1) ;
+ 
+DESC pipe employee_pipe;
+
+select * from Employee;

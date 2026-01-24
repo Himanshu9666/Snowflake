@@ -1,0 +1,45 @@
+create or replace database jsondb;
+
+create or replace schema stage_schema_ext;
+
+// First step: Load raw Json
+
+CREATE or REPLACE STAGE s3_bucket_himanshu_stage
+ URL = 's3://regex-himanshu'
+ CREDENTIALS = (AWS_KEY_ID = 'AHTV55ER'
+ AWS_SECRET_KEY ='wYaxFRNPOXMf');
+
+ list@jsondb.stage_schema_ext.s3_bucket_himanshu_stage;
+
+ -- schema for table 
+CREATE OR REPLACE schema table_schema_hr;
+
+CREATE OR REPLACE schema file_formate_schema_hr;
+
+create or replace  file format jsondb.file_formate_schema_hr.jsonformat
+TYPE = JSON;
+
+create or replace table jsondb.table_schema_hr.JSON_RAW (raw_file variant) ;
+
+select * from jsondb.table_schema_hr.json_raw;
+
+copy into jsondb.table_schema_hr.json_raw
+from @jsondb.stage_schema_ext.s3_bucket_himanshu_stage
+file_format = jsondb.file_formate_schema_hr.jsonformat
+files = ('HR_data(1).json');
+
+select * from jsondb.table_schema_hr.json_raw;
+
+select raw_file,raw_file:city,raw_file:first_name:: string from 
+jsondb.table_schema_hr.json_raw;
+
+
+select raw_file,raw_file:city,$1:city,raw_file:first_name:: string,
+raw_file:spoken_languages[0],raw_file:spoken_languages[1] from 
+jsondb.table_schema_hr.json_raw;
+
+
+-- flattern
+select
+raw_file:first_name::string as first_name,raw_file::spoken_languages,f.value.f.value:language,f.value:level
+from jsondb.table_schema_hr.json_raw,table(flatten(raw_file.spoken_languages)) f;
