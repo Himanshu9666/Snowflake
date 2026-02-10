@@ -1,0 +1,28 @@
+create database newdb;
+create or replace schema newdb.demoschema;
+create or replace  table newdb.demoschema.stddob(id int,name varchar(20),city varchar(20),dob date );
+
+
+SELECT * FROM stddob ;
+
+
+create or replace stage newdb.demoschema.s3_demo_stage
+ URL = 's3://regex-himanshu'
+ CREDENTIALS = (AWS_KEY_ID = 'ATV55ER'
+ AWS_SECRET_KEY ='wY7phckKLaxFRNPOXMf');
+
+DESCRIBE STAGE newdb.demoschema.s3_demo_stage;
+
+list @s3_demo_stage;
+
+COPY INTO newdb.demoschema.stddob
+FROM (SELECT SUBSTR(S1.$1, 2),S1.$2,S1.$3,TO_DATE(S1.$5 || '-' || S1.$6 || '-' || S1.$7, 'DD-MM-YYYY')
+FROM @s3_demo_stage S1)
+FILE_FORMAT = (FIELD_DELIMITER = '-',SKIP_HEADER = 1)
+FILES = ('sample2.txt');
+
+select id,name,city,to_varchar(dob,'DD-MM-YYYY')
+from newdb.demoschema.stddob;
+SELECT * FROM stddob ;
+
+
